@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js FBXLoader Example</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+       <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.5); /* Add a semi-transparent background */
+            height: 100vh; /* Set height to 100% of viewport height */
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #welcome-container {
+            position: absolute;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px; /* Add spacing between elements */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #welcome {
+            font-size: 2rem; /* Increase font size */
+            font-weight: bold; /* Make text bold */
+            color: white; /* Change text color to white */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Add text shadow for better visibility */
+        }
+        button {
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            background-color: transparent; /* Make button background transparent */
+            border: 2px solid white; /* Add white border */
+            color: white; /* Change button text color to white */
+            transition: background-color 0.3s ease; /* Add transition for hover effect */
+        }
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.1); /* Add hover effect */
+        }
+        .button-container {
+            display: flex; /* Align buttons horizontally */
+            gap: 10px; /* Add spacing between buttons */
+            margin-top: 3px;
+            margin-left: 20%;
+        }
+        
+    </style>
+</head>
+<div id="welcome-container">
+    <div id="m1">
+        <div id="loadingProgress">
+            <progress id="progressBar" value="0" max="100"></progress>
+            <p id="progressText" style="color: white;  margin-left: 20%;">0% loaded</p>
+          </div>
+    </div>
+    <div id="m2" style="display: none; align-items: center;
+    justify-content: center;">
+          
+            <div id="welcome">Welcome to Spartan Game</div>
+            <div class="button-container">
+                <button class="button" onclick="playAudio()" id="play-button">Play Audio</button>
+                <button class="button" onclick="stopAudio()" id="stop-button">Stop Audio</button>
+        </div>
+    </div>
+</div>
+
+
+<body>
+    <script type="module">
+        // Import Three.js from unpkg.com
+        import * as THREE from 'https://cdn.skypack.dev/three@0.132';
+
+        // Import FBXLoader from Three.js examples directory
+        import { FBXLoader } from 'https://cdn.skypack.dev/three@0.132/examples/jsm/loaders/FBXLoader.js';
+
+        // Import OrbitControls for camera manipulation
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132/examples/jsm/controls/OrbitControls.js';
+
+        // Create a scene
+        const scene = new THREE.Scene();
+
+        // Create a camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 10);
+
+        // Create a renderer
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+        scene.add(ambientLight);
+
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2); // Increase light intensity
+        directionalLight.position.set(5, 5, 5); // set light position
+        scene.add(directionalLight);
+
+        // Load the FBX model
+        const loader = new FBXLoader();
+        loader.load(
+            'https://raw.githubusercontent.com/jastine-mkiramweni/img/main/Punching%20Bag.fbx', // Change the filename here
+            function (object) {
+                // Adjust object size and position
+                object.scale.set(0.01, 0.01, 0.01); // Adjust scale
+                object.position.set(0, -5, 0); // Adjust position
+
+
+                // Adjust material properties
+                object.traverse(child => {
+                    if (child.isMesh) {
+                        child.material.side = THREE.DoubleSide; // Double sided material
+                    }
+                });
+
+                scene.add(object);
+
+                // Play animation
+                const mixer = new THREE.AnimationMixer(object);
+const action = mixer.clipAction(object.animations[0]); // Assuming only one animation clip
+action.timeScale = 2.0; // Set the speed to 2x
+action.play();
+
+// Assuming you have already created your scene and object
+// Create a clock
+const clock = new THREE.Clock();
+
+// Update function
+function update() {
+    // Get the elapsed time since the last frame
+    const delta = clock.getDelta();
+
+    // Rotate the object counterclockwise
+    object.rotation.y -= delta * Math.PI * 2 * 0.1; // Adjust the speed as needed
+
+    // Update the animation mixer
+    mixer.update(delta);
+
+    // Render the scene
+    renderer.render(scene, camera);
+
+    // Call update again on the next frame
+    requestAnimationFrame(update);
+}
+
+// Start the update loop
+update();
+
+                // Enable controls for camera manipulation
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true; // smooth motion while rotating
+                controls.dampingFactor = 0.25; // controls rotation damping
+
+                // Render loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    mixer.update(0.01); // Update animation mixer
+                    renderer.render(scene, camera);
+                }
+                animate();
+            },
+            function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+
+                const progressBar = document.getElementById('progressBar');
+const progressText = document.getElementById('progressText');
+
+// Simulate loading progress
+const total = 100;
+let loaded = 0;
+const interval = setInterval(() => {
+  loaded += Math.floor(Math.random() * 10) + 1;
+  const progress = (loaded / total * 100);
+  progressBar.value = progress;
+  progressText.innerHTML = `${progress.toFixed(2)}% loaded`;
+  if (progress === 100) {
+    clearInterval(interval);
+    // Hide loading progress bar
+    document.getElementById('loadingProgress').style.display = 'none';
+    // Show content to display after loading
+    document.getElementById('m1').style.display = 'none';
+    document.getElementById('m2').style.display = 'block';
+  }
+}, 100);
+
+            },
+            function (error) {
+                console.error('Error loading FBX model:', error);
+            }
+        );
+
+    </script>
+    <script>
+        var music, person;
+    
+        function playAudio() {
+          // create audio elements
+          music = new Audio('https://raw.githubusercontent.com/jastine-mkiramweni/img/main/music.mp3');
+    
+          // set loop attribute for music
+          music.loop = true;
+    
+          // set volume for music and person
+          music.volume = 0.5; // reduce volume of music
+          
+    
+          // play music
+          music.play();
+    
+    
+          // disable play button and enable stop button
+          document.getElementById('play-button').disabled = true;
+          document.getElementById('stop-button').disabled = false;
+        }
+    
+        function stopAudio() {
+          // stop music and person audio
+          music.pause();
+    
+          // reset audio elements to initial state
+          music.currentTime = 0;
+    
+          // enable play button and disable stop button
+          document.getElementById('play-button').disabled = false;
+          document.getElementById('stop-button').disabled = true;
+          
+        }
+    
+        // disable stop button initially
+        document.getElementById('stop-button').disabled = true;
+      </script>
+</body>
+</html>
